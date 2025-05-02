@@ -30,8 +30,8 @@ This is a Flask-based semantic search and question management tool integrated wi
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/yourusername/semantic-question-search.git
-cd semantic-question-search
+git git@github.com:Hafiz-sustswe/Semantic-Search-and-duplicate-finding.git
+cd Semantic-Search-and-duplicate-finding
 ```
 
 ### 2. Create a `.env` file
