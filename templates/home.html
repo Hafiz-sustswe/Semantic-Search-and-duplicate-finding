@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Question Bank Search</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .section { margin-bottom: 2rem; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        input, textarea { width: 100%; padding: 10px; margin-bottom: 10px; }
+        button { background: #4CAF50; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #45a049; }
+        .result { background: #f9f9f9; padding: 15px; margin-bottom: 10px; border-radius: 4px; }
+        .error { color: red; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Question Bank</h1>
+
+        <div class="section">
+            <h2>Search Questions</h2>
+            <input type="text" id="searchInput" placeholder="Enter your question...">
+            <button onclick="searchQuestions()">Search</button>
+            <div id="searchResults"></div>
+        </div>
+
+        <div class="section">
+            <h2>Add New Question</h2>
+            <textarea id="newQuestion" rows="3" placeholder="Enter your new question..."></textarea>
+            <button onclick="addQuestion()">Add Question</button>
+            <div id="message"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5001';
+
+        async function getEmbedding(text) {
+            const response = await fetch(`${API_URL}/get_embedding`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text })
+            });
+            return await response.json();
+        }
+
+        function displayResults(results, containerId) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+
+            results.forEach(result => {
+                const div = document.createElement('div');
+                div.className = 'result';
+                div.innerHTML = `
+                    <div><strong>Question:</strong> ${result.text}</div>
+                    <div><strong>Similarity Score:</strong> ${result.score.toFixed(3)}</div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        async function searchQuestions() {
+            const query = document.getElementById('searchInput').value.trim();
+            if (!query) return alert('Please enter a search query');
+
+            try {
+                const embedding = await getEmbedding(query);
+                const response = await fetch(`${API_URL}/search_embeddings`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ query_embedding: embedding })
+                });
+
+                const data = await response.json();
+                if (data.matches.length > 0) {
+                    displayResults(data.matches, 'searchResults');
+                } else {
+                    document.getElementById('searchResults').innerHTML =
+                        '<div class="result">No matching questions found</div>';
+                }
+            } catch (error) {
+                showMessage(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function addQuestion() {
+            const question = document.getElementById('newQuestion').value.trim();
+            if (!question) return alert('Please enter a question');
+
+            try {
+                // Check for duplicates
+                const embedding = await getEmbedding(question);
+                const dupResponse = await fetch(`${API_URL}/find_duplicates`, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        query_embedding: embedding,
+                        similarity_threshold: 0.9
+                    }),
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const dupData = await dupResponse.json();
+                if (dupData.duplicates.length > 0) {
+                    showMessage('Duplicate questions found:', 'error');
+                    displayResults(dupData.duplicates, 'message');
+                    return;
+                }
+
+                // Add new question
+                const addResponse = await fetch(`${API_URL}/add_embedding`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        text: question,
+                        metadata: { source: 'web' }
+                    })
+                });
+
+                const result = await addResponse.json();
+                showMessage('Question added successfully!', 'success');
+                document.getElementById('newQuestion').value = '';
+            } catch (error) {
+                showMessage(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        function showMessage(text, type = 'info') {
+            const messageDiv = document.getElementById('message');
+            messageDiv.innerHTML = `<div class="${type}">${text}</div>`;
+            setTimeout(() => messageDiv.innerHTML = '', 5000);
+        }
+    </script>
+</body>
+</html>

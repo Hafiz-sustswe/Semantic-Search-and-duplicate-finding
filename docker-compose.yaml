@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  semantic-search-api:
+    build: .
+    ports:
+      - "5001:5001"
+    environment:
+      - PINECONE_API_KEY=${PINECONE_API_KEY}
+    volumes:
+      - ./projection.npy:/app/projection.npy
