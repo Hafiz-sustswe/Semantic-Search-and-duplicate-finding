@@ -106,7 +106,7 @@ This app automatically creates the index if it doesn't exist:
 
 1. Enter a new question and click **"Add Question"**
 2. Search similar questions via the **Search** field
-3. Use **"Find Duplicates"** to identify matching ones (≥0.9 similarity)
+3. Use **"Find Duplicates"** to identify matching ones (≥0.6  which means 60% similarity for now, you can update on "similarity_threshold" variable)
 
 ---
 
